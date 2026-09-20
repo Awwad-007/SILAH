@@ -50,15 +50,41 @@ Think of SILAH's `/dev/net/tun` hook as a **private pneumatic tube directly into
 
 ---
 
+---
+
+## Part 2: Ethernet & ARP Protocol Layer
+
+Part 2 implements Layer 2 Ethernet framing and Address Resolution Protocol (ARP) packet processing and caching.
+
+### Analogy
+- **Ethernet Frame**: The envelope for one single hop of a conveyor belt, stamped with physical sender/receiver hardware badges (MAC addresses) and an EtherType label declaring what cargo is packed inside.
+- **ARP (Address Resolution Protocol)**: Shouting across a crowded office floor: *"Who owns IP 10.0.0.2? Please report back to 10.0.0.1!"* The true owner replies directly with their physical hardware MAC address.
+- **ARP Table**: The receptionist's notebook where recently shouted physical badge numbers are jotted down on sticky notes that expire after 300 seconds (`ARP_CACHE_TTL`).
+
+### Key Components
+- [`protocol/ethernet.py`](file:///c:/Users/lenovo/Desktop/SILAH/protocol/ethernet.py):
+  - `EthernetFrame`: Serializes and deserializes 14-byte Ethernet II frames (`!6s6sH`).
+  - `mac_to_str` & `mac_from_str`: Fast, robust MAC address formatting and parsing.
+- [`protocol/arp.py`](file:///c:/Users/lenovo/Desktop/SILAH/protocol/arp.py):
+  - `ArpPacket`: 28-byte Ethernet/IPv4 ARP packet parser and packer (`!HHBBH6s4s6s4s`).
+  - `ArpTable`: In-memory IP-to-MAC mapping cache with automatic TTL expiration.
+  - `build_arp_request` & `build_arp_reply`: Helper builders for broadcast requests and unicast replies.
+  - `handle_arp_frame`: Main protocol ingress function that learns sender mappings and automatically generates unicast replies when queried for our IP.
+
+---
+
 ## Verification & Testing
 
 ### Tier 1 Automated Tests (No Root / No Kernel Device Required)
-Runs anywhere without root privileges using OS pipes (`os.pipe()`) to validate:
+Runs anywhere without root privileges to validate:
 - `struct ifreq` exact memory packing and flag preservation.
-- Hardcoded constants (`TUNSETIFF`, `IFF_TAP`, `IFF_NO_PI`).
+- Hardcoded constants (`TUNSETIFF`, `IFF_TAP`, `IFF_NO_PI`, ARP constants).
 - Asynchronous reader and FIFO frame ordering through `asyncio.Queue`.
 - Synchronous send pipeline and teardown idempotency.
-- Absence of OS socket API references.
+- Ethernet and ARP packet pack/parse round-trips.
+- ARP cache table storage, lookup, and TTL expiration.
+- Full `handle_arp_frame` request/reply lifecycle and mapping learning.
+- Total absence of OS socket API references.
 
 Run automated tests:
 ```bash
