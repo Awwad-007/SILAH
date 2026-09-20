@@ -73,17 +73,41 @@ Part 2 implements Layer 2 Ethernet framing and Address Resolution Protocol (ARP)
 
 ---
 
+---
+
+## Part 3: IPv4 & ICMP (Ping) Protocol Layer
+
+Part 3 implements Layer 3 IPv4 packet processing, RFC 1071 internet checksumming, and ICMP Echo Request / Reply (ping) mirroring.
+
+### Analogy
+- **IPv4 Packet**: The universal shipping label glued onto cargo inside the Ethernet envelope. Valid for the entire cross-network journey, it carries origin/destination IP addresses and a TTL hop-counter stamped on it to prevent lost packages from circulating forever.
+- **Internet Checksum**: Re-adding a column of numbers on an invoice to catch typos. If the recipient re-adds all numbers including the negative total (checksum), the final sum evaluates to exactly zero.
+- **ICMP Echo (Ping)**: Someone tapping your shoulder with a specific rhythm (Echo Request), and you tapping back the exact same rhythm (Echo Reply) with identical identifier, sequence, and payload data to prove you are awake and listening.
+
+### Key Components
+- [`protocol/ipv4.py`](file:///c:/Users/lenovo/Desktop/SILAH/protocol/ipv4.py):
+  - `IPv4Packet`: 20-byte base header (`!BBHHHBBH4s4s`), options parsing, payload extraction with Ethernet padding trimming, and header checksum serialization.
+  - `checksum`: Reusable RFC 1071 ones' complement 16-bit internet checksum algorithm.
+  - Protocol constants: `PROTO_ICMP = 0x01`, `PROTO_TCP = 0x06`, `PROTO_UDP = 0x11`.
+- [`protocol/icmp.py`](file:///c:/Users/lenovo/Desktop/SILAH/protocol/icmp.py):
+  - `IcmpPacket`: 8-byte header (`!BBHHH`) with whole-message checksum validation and serialization.
+  - `build_echo_reply`: Constructs an ICMP Echo Reply exactly mirroring the request's identifier, sequence, and payload data.
+
+---
+
 ## Verification & Testing
 
 ### Tier 1 Automated Tests (No Root / No Kernel Device Required)
 Runs anywhere without root privileges to validate:
 - `struct ifreq` exact memory packing and flag preservation.
-- Hardcoded constants (`TUNSETIFF`, `IFF_TAP`, `IFF_NO_PI`, ARP constants).
+- Hardcoded constants (`TUNSETIFF`, `IFF_TAP`, `IFF_NO_PI`, ARP/IPv4/ICMP constants).
 - Asynchronous reader and FIFO frame ordering through `asyncio.Queue`.
 - Synchronous send pipeline and teardown idempotency.
-- Ethernet and ARP packet pack/parse round-trips.
+- Ethernet, ARP, IPv4, and ICMP packet pack/parse round-trips.
+- RFC 1071 checksum calculation, odd-byte padding, carry folding, and self-validation.
 - ARP cache table storage, lookup, and TTL expiration.
-- Full `handle_arp_frame` request/reply lifecycle and mapping learning.
+- Full `handle_arp_frame` request/reply lifecycle.
+- Full end-to-end ping simulation (Ethernet -> IPv4 -> ICMP Request -> ICMP Reply).
 - Total absence of OS socket API references.
 
 Run automated tests:
