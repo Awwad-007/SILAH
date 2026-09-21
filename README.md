@@ -95,20 +95,39 @@ Part 3 implements Layer 3 IPv4 packet processing, RFC 1071 internet checksumming
 
 ---
 
+---
+
+## Part 4: TCP Header Parsing & Pseudo-Header Checksum
+
+Part 4 implements Layer 4 TCP segment serialization, parsing, flag manipulation, variable options decoding, and RFC 793 IPv4 pseudo-header checksum validation.
+
+### Analogy
+- **TCP Segment**: The numbered-pages parcel system inside the shipping envelope. Every byte shipped gets a running page number (sequence number), and the receiver confirms how many continuous pages have arrived (acknowledgment number).
+- **Flag Bits**: Checkboxes stamped directly on the parcel envelope (`SYN` = start a conversation, `ACK` = acknowledge received bytes, `FIN` = close stream, `RST` = reset, `PSH` = push to application, `URG` = urgent pointer).
+- **Pseudo-Header Checksum**: TCP borrowing the delivery address off the outer IPv4 envelope before sealing its tamper-proof checksum seal, preventing packets delivered to the wrong IP address from being accepted silently.
+
+### Key Components
+- [`protocol/tcp.py`](file:///c:/Users/lenovo/Desktop/SILAH/protocol/tcp.py):
+  - `TcpSegment`: 20-byte base header (`!HHIIHHHH`), dynamic `data_offset` calculation, flag isolation, options carrying, and wire-format serialization.
+  - `flags_to_str`: Formats flag bitmasks into canonical strings (e.g. `"SYN|ACK"`).
+  - `verify_checksum`: Builds the 12-byte IPv4 pseudo-header and validates segment checksum integrity.
+  - Flag constants: `FLAG_FIN (0x01)`, `FLAG_SYN (0x02)`, `FLAG_RST (0x04)`, `FLAG_PSH (0x08)`, `FLAG_ACK (0x10)`, `FLAG_URG (0x20)`.
+
+---
+
 ## Verification & Testing
 
 ### Tier 1 Automated Tests (No Root / No Kernel Device Required)
 Runs anywhere without root privileges to validate:
 - `struct ifreq` exact memory packing and flag preservation.
-- Hardcoded constants (`TUNSETIFF`, `IFF_TAP`, `IFF_NO_PI`, ARP/IPv4/ICMP constants).
+- Hardcoded constants (`TUNSETIFF`, `IFF_TAP`, `IFF_NO_PI`, ARP/IPv4/ICMP/TCP constants).
 - Asynchronous reader and FIFO frame ordering through `asyncio.Queue`.
 - Synchronous send pipeline and teardown idempotency.
-- Ethernet, ARP, IPv4, and ICMP packet pack/parse round-trips.
-- RFC 1071 checksum calculation, odd-byte padding, carry folding, and self-validation.
-- ARP cache table storage, lookup, and TTL expiration.
-- Full `handle_arp_frame` request/reply lifecycle.
-- Full end-to-end ping simulation (Ethernet -> IPv4 -> ICMP Request -> ICMP Reply).
-- Total absence of OS socket API references.
+- Ethernet, ARP, IPv4, ICMP, and TCP packet pack/parse round-trips.
+- RFC 1071 internet checksum and RFC 793 TCP pseudo-header checksum calculation.
+- Independent from-scratch test checksum verification and anti-tamper/anti-misdelivery checks.
+- Full end-to-end ping and TCP-over-IPv4 composition pipelines.
+- Total absence of OS socket APIs and connection state machine references.
 
 Run automated tests:
 ```bash

@@ -1,4 +1,4 @@
-"""SILAH Protocol Layer: Layer 2 Ethernet, ARP, Layer 3 IPv4, and ICMP."""
+"""SILAH Protocol Layer: Layer 2 Ethernet, ARP, Layer 3 IPv4, ICMP, and Layer 4 TCP."""
 
 from protocol.arp import (
     ARP_CACHE_TTL,
@@ -39,6 +39,17 @@ from protocol.ipv4 import (
     IPv4Packet,
     checksum,
 )
+from protocol.tcp import (
+    FLAG_ACK,
+    FLAG_FIN,
+    FLAG_PSH,
+    FLAG_RST,
+    FLAG_SYN,
+    FLAG_URG,
+    TCP_MIN_HEADER_LEN,
+    TcpSegment,
+    flags_to_str,
+)
 
 __all__ = [
     # Ethernet
@@ -76,4 +87,14 @@ __all__ = [
     "ICMP_ECHO_REPLY",
     "IcmpPacket",
     "build_echo_reply",
+    # TCP
+    "TCP_MIN_HEADER_LEN",
+    "FLAG_FIN",
+    "FLAG_SYN",
+    "FLAG_RST",
+    "FLAG_PSH",
+    "FLAG_ACK",
+    "FLAG_URG",
+    "flags_to_str",
+    "TcpSegment",
 ]
